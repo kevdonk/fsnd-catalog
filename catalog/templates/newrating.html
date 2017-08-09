@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <h1>New Rating</h1>
+    <div class='form-container'>
+      <form action="{{ url_for('newRating') }}" method="POST">
+        Name: <input type='text' size='80' name='name' required><br>
+        <br>
+        <input type='submit' value='Add Rating'>
+      </form>
+    </div>
+  </body>
+</html>

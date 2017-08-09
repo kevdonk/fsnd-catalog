@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <h1>Stocks to {{ rating.name }}</h1>
+
+    <ul>
+      {% for stock in stocks %}
+      <li>{{ stock.ticker_symbol }} : {{ stock.name }}</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>

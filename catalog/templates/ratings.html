@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <h1>Ratings</h1>
+
+    <ul>
+      {% for rating in ratings %}
+      <li>{{ rating.name }}</li>
+      {% endfor %}
+    </ul>
+  </body>
+</html>
