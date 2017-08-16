@@ -15,7 +15,7 @@ def main():
     return "hi"
 
 
-@app.route('/ratings/<string:rating_name>/JSON')
+@app.route('/portfolio/<string:rating_name>/JSON')
 def ratingJSON(rating_name):
     rating = session.query(Rating).filter_by(name=rating_name).one_or_none()
     if rating:
@@ -24,29 +24,29 @@ def ratingJSON(rating_name):
         return "No rating matching name {}".format(rating_name)
 
 
-@app.route('/ratings/<string:rating_name>/stocks/JSON')
+@app.route('/portfolio/<string:rating_name>/stocks/JSON')
 def stocksWithRatingJSON(rating_name):
     stocks = session.query(Stock).filter_by(rating_name=rating_name).all()
     return jsonify(Stocks=[stock.serialize for stock in stocks])
 
 
-@app.route('/ratings')
-def ratings():
+@app.route('/portfolio')
+def viewRatings():
     ratings = session.query(Rating).all()
     return render_template('ratings.html', ratings=ratings)
 
-@app.route('/ratings/new', methods=['GET', 'POST'])
+@app.route('/portfolio/new', methods=['GET', 'POST'])
 def newRating():
     if request.method == 'POST':
         rating = Rating(name=request.form['name'])
         session.add(rating)
         session.commit()
-        return redirect(url_for('rating', rating_name=rating.name))
+        return redirect(url_for('viewRating', rating_name=rating.name))
     else:
         return render_template('newrating.html')
 
-@app.route('/ratings/<string:rating_name>/stocks')
-def rating(rating_name):
+@app.route('/portfolio/<string:rating_name>/stocks')
+def viewRating(rating_name):
     rating = session.query(Rating).filter_by(name=rating_name).one_or_none()
     if rating:
         stocks = session.query(Stock).filter_by(rating_id=rating.id).all()
@@ -55,7 +55,7 @@ def rating(rating_name):
         return 'Invalid Rating'
 
 
-@app.route('/ratings/<string:rating_name>/new', methods=['GET', 'POST'])
+@app.route('/portfolio/<string:rating_name>/new', methods=['GET', 'POST'])
 def newStock(rating_name):
 
     rating = session.query(Rating).filter_by(name=rating_name).one_or_none()
@@ -64,11 +64,40 @@ def newStock(rating_name):
             stock = Stock(name=request.form['name'], ticker_symbol=request.form['ticker_symbol'], rating_id=rating.id)
             session.add(stock)
             session.commit()
-            return redirect(url_for('rating', rating_name=rating_name))
+            return redirect(url_for('viewRating', rating_name=rating_name))
         else:
             return render_template('newstock.html', rating_name=rating_name)
     else:
         return 'Invalid Rating'
+
+@app.route('/portfolio/<string:ticker_symbol>')
+def viewStock(ticker_symbol):
+    stock = session.query(Stock).filter_by(ticker_symbol=ticker_symbol).one_or_none()
+    if stock:
+        return render_template('stock.html', stock=stock)
+    else: 
+        return 'Invalid Stock'
+
+@app.route('/portfolio/<string:ticker_symbol>/edit', methods=['GET', 'POST'])
+def editStock(ticker_symbol):
+    stock = session.query(Stock).filter_by(ticker_symbol=ticker_symbol).one_or_none()
+    if stock:
+        if request.method == 'POST':
+            if request.form['name']:
+                stock.name = request.form['name']
+            if request.form['ticker_symbol']:
+                stock.ticker_symbol = request.form['ticker_symbol']
+            if request.form['rating_id']:
+                stock.rating_id = request.form['rating_id']
+
+            session.add(stock)
+            session.commit()
+            return redirect(url_for('viewStock', ticker_symbol=stock.ticker_symbol))
+        else:
+            ratings = session.query(Rating).all()
+            return render_template('editStock.html', stock=stock, ratings=ratings)
+    else:
+        return 'Invalid Stock'
 
 
 if __name__ == '__main__':
