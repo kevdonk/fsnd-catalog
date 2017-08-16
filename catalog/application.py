@@ -22,20 +22,7 @@ def findRatingByName(rating_name):
 def main():
     return "hi"
 
-
-@app.route('/portfolio/<string:rating_name>/JSON')
-def ratingJSON(rating_name):
-    rating = findRatingByName(rating_name)
-    if rating:
-        return jsonify(Rating=rating.serialize)
-    else:
-        return "No rating matching name {}".format(rating_name)
-
-
-@app.route('/portfolio/<string:rating_name>/stocks/JSON')
-def stocksWithRatingJSON(rating_name):
-    stocks = session.query(Stock).filter_by(rating_name=rating_name).all()
-    return jsonify(Stocks=[stock.serialize for stock in stocks])
+#TODO: add JSON endpoint
 
 
 @app.route('/portfolio')
