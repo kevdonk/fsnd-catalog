@@ -1,0 +1,26 @@
+.header {
+  height: 50px;
+  width: 100%;
+  background-color: blue;
+}
+
+.footer {
+  height: 50px;
+  width: 100%;
+  background-color: lightgoldenrodyellow;
+}
+
+.content {
+  width: 100%;
+  display: flex;
+}
+
+.left {
+  width: 30%;
+  display: inline-block;
+}
+
+.right {
+  width: 70%;
+  display: inline-block;
+}

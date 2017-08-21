@@ -35,8 +35,7 @@ class Stock(Base):
         return {
             'name': self.name,
             'id': self.id,
-            'ticker_symbol': self.ticker_symbol,
-            'rating': self.rating
+            'ticker_symbol': self.ticker_symbol
         }
 
 

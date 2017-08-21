@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+    {% block head %}
+    <title>Portfolio</title>
+    {% endblock %}
+  </head>
+  <body>
+    <div class="header">
+      {% block header %}
+        header 
+      {% endblock %}
+    </div>
+    <div class="content">
+      {% block content %}
+      <div class="left">
+        {% block left %}
+          left 
+        {% endblock %}
+      </div>
+      <div class="right">
+        {% block right %}
+          right
+        {% endblock %}
+      </div>
+      {% endblock %}
+    </div>
+    <div class="footer">
+      {% block footer %}
+        footer 
+      {% endblock %}
+    </div>
+  </body>
+</html>
