@@ -1,16 +1,17 @@
-from flask import Flask, jsonify, request, render_template, url_for, redirect, session as login_session, make_response, flash
+"""Web app to manage a stock portfolio"""
+import json
+import random
+import string
+import httplib2
+import requests
+from flask import Flask, jsonify, request, render_template, url_for, redirect, \
+    session as login_session, make_response
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db_setup import Base, Stock, Rating
 
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
-
-import json
-import random
-import httplib2
-import requests
-import string
 
 app = Flask(__name__)
 engine = create_engine('sqlite:///portfolio.db')
@@ -23,30 +24,35 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 def findStockByTicker(ticker_symbol):
+    """Return Stock given ticker_symbol"""
     return session.query(Stock).filter_by(ticker_symbol=ticker_symbol).one_or_none()
 
 
 def findRatingByName(rating_name):
+    """Return Rating given name"""
     return session.query(Rating).filter_by(name=rating_name).one_or_none()
 
 def render_template_with_ratings(*args, **kwargs):
+    """Wrapper to pass in ratings and other common vars required by layout template"""
     # generate random 'state' token to verify against
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                for x in xrange(32))
+                    for x in xrange(32))
     login_session['state'] = state
     ratings = session.query(Rating).all()
     is_logged_in = True
     if 'username' not in login_session:
         is_logged_in = False
-        
+
     return render_template(args, ratings=ratings, STATE=state, logged_in=is_logged_in, **kwargs)
 
 @app.route('/')
 def main():
+    """Main just redirects to /portfolio"""
     return redirect('/portfolio')
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
+    """Validate against state token and try to auth through Google"""
     # Validate state token
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
@@ -124,35 +130,38 @@ def gconnect():
 
 @app.route('/gdisconnect')
 def gdisconnect():
+    """Disconnect from Google auth and clear login_session"""
     access_token = login_session['access_token']
     # handle if user is visiting this page manually without being connected
     if access_token is None:
-    	response = make_response(json.dumps('Current user not connected.'), 401)
-    	response.headers['Content-Type'] = 'application/json'
-    	return response
+        response = make_response(json.dumps('Current user not connected.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
 
     if result['status'] == '200':
     #clear login_session
-	del login_session['access_token'] 
-    	del login_session['gplus_id']
-    	del login_session['username']
-    	del login_session['email']
-    	del login_session['picture']
-    	return redirect('/portfolio')
+        del login_session['access_token']
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+        return redirect('/portfolio')
     else:
         return redirect('/portfolio')
 
 #JSON routes
 @app.route('/portfolio/JSON')
 def portfolioJSON():
+    """Return JSON portfolio"""
     portfolio = session.query(Rating).all()
     return jsonify(ratings=[rating.serialize for rating in portfolio])
 
 @app.route('/rating/<string:rating_name>/stocks/JSON')
 def ratingStocksJSON(rating_name):
+    """Return JSON stocks"""
     rating = findRatingByName(rating_name)
     if rating:
         stocks = session.query(Stock).filter_by(rating_id=rating.id).all()
@@ -162,6 +171,7 @@ def ratingStocksJSON(rating_name):
 
 @app.route('/stock/<string:ticker_symbol>/JSON')
 def stockJSON(ticker_symbol):
+    """Return JSON single stock"""
     stock = findStockByTicker(ticker_symbol)
     if stock:
         return jsonify(stock=stock.serialize)
@@ -170,10 +180,12 @@ def stockJSON(ticker_symbol):
 
 @app.route('/portfolio')
 def viewRatings():
+    """'Home' page"""
     return render_template_with_ratings('ratings.html')
 
 @app.route('/rating/new', methods=['GET', 'POST'])
 def newRating():
+    """Make sure user is logged in, and display page to add new Rating"""
     if 'username' not in login_session:
         return redirect('/portfolio')
     if request.method == 'POST':
@@ -186,6 +198,7 @@ def newRating():
 
 @app.route('/rating/<string:rating_name>/stocks')
 def viewRating(rating_name):
+    """Page to view Rating"""
     rating = findRatingByName(rating_name)
     if rating:
         stocks = session.query(Stock).filter_by(rating_id=rating.id).all()
@@ -196,12 +209,14 @@ def viewRating(rating_name):
 
 @app.route('/rating/<string:rating_name>/new', methods=['GET', 'POST'])
 def newStock(rating_name):
+    """Make sure user is logged in, and display page to add new Stock"""
     if 'username' not in login_session:
         return redirect('/portfolio')
     rating = findRatingByName(rating_name)
     if rating:
         if request.method == 'POST':
-            stock = Stock(name=request.form['name'], ticker_symbol=request.form['ticker_symbol'], rating_id=rating.id)
+            stock = Stock(name=request.form['name'], ticker_symbol=request.form['ticker_symbol'],\
+                rating_id=rating.id)
             session.add(stock)
             session.commit()
             return redirect(url_for('viewRating', rating_name=rating_name))
@@ -212,14 +227,16 @@ def newStock(rating_name):
 
 @app.route('/stock/<string:ticker_symbol>')
 def viewStock(ticker_symbol):
+    """Page to view Stock"""
     stock = findStockByTicker(ticker_symbol)
     if stock:
         return render_template_with_ratings('stock.html', stock=stock)
-    else: 
+    else:
         return 'Invalid Stock'
 
 @app.route('/stock/<string:ticker_symbol>/edit', methods=['GET', 'POST'])
 def editStock(ticker_symbol):
+    """Make sure user is logged in, and display page to edit Stock"""
     if 'username' not in login_session:
         return redirect('/portfolio')
     stock = findStockByTicker(ticker_symbol)
@@ -242,6 +259,7 @@ def editStock(ticker_symbol):
 
 @app.route('/stock/<string:ticker_symbol>/delete', methods=['GET', 'POST'])
 def deleteStock(ticker_symbol):
+    """Make sure user is logged in, and display page to delete Stock"""
     if 'username' not in login_session:
         return redirect('/portfolio')
     stock = findStockByTicker(ticker_symbol)
@@ -260,6 +278,4 @@ def deleteStock(ticker_symbol):
 if __name__ == '__main__':
     app.secret_key = 'hunter2'
     app.debug = True
-    app.run(host = '0.0.0.0', port = 5000)
-
-
+    app.run(host='0.0.0.0', port=5000)
