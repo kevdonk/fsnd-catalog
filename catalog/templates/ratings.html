@@ -1,11 +1,9 @@
 {% extends "layout.html" %}
-{% block header %}
-    <h1>Ratings</h1>
-{% endblock %}
 {% block right %}
-    <ul>
-      {% for rating in ratings %}
-      <li>{{ rating.name }}</li>
-      {% endfor %}
-    </ul>
+  <h2>Ratings</h2>
+  <ul>
+    {% for rating in ratings %}
+    <li>{{ rating.name }}</li>
+    {% endfor %}
+  </ul>
 {% endblock %}

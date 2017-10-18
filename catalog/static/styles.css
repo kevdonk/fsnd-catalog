@@ -1,13 +1,37 @@
-.header {
-  height: 50px;
-  width: 100%;
-  background-color: blue;
+* {
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
-.footer {
-  height: 50px;
+body {
+  margin: 0;
+}
+
+h1 {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+a, a:visited, a:active, a:focus, a:hover {
+  color: black;
+  text-decoration: none;
+}
+
+.delete {
+  color: red;
+  padding: 0 10px;
+}
+
+.header {
+  padding: 10px 0 0 10px;
+  height: 10%;
+  min-height: 50px;
   width: 100%;
-  background-color: lightgoldenrodyellow;
+  background-color: lightskyblue;
 }
 
 .content {
@@ -16,11 +40,55 @@
 }
 
 .left {
-  width: 30%;
+  width: 10%;
+  height:90%;
+  background: lightskyblue;
   display: inline-block;
 }
 
+.left a, .left a:visited, .left .left a:active, .left a:focus, .left a:hover {
+  width: 100%;
+  display: block;
+  padding: 5px 10px;
+}
+
+.left li:hover {
+  text-decoration: none;
+  background-color: lightgreen;
+}
+
 .right {
-  width: 70%;
+  padding-left: 10px;
+  width: 90%;
   display: inline-block;
+}
+
+.g-signin2 {
+  display: inline-block;
+  float: right;
+  padding-right: 50px;
+}
+
+#signout, #signin {
+  float: right;
+  padding-right: 50px;
+}
+
+#signoutButton, #signinButton {
+  display: inline-block;
+  vertical-align: middle;
+  border: 0;
+  border-radius: 1px;
+  box-shadow: 0 2px 4px 0 rgba(0,0,0,.25);
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+  height: 36px;
+  width: 120px;
+  background: #FFFFFF;
+  font-size: 13px;
+  line-height: 34px;
+}
+
+#signoutButton a, #signinButton a {
+  color: #757575;
 }

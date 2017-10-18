@@ -1,10 +1,5 @@
-<html>
-  <head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <h1>{{stock.name}}</h1>
-
-    <p>{{ stock.ticker_symbol }} : {{ stock.name }} : {{stock.rating.name }}</p>
-  </body>
-</html>
+{% extends "layout.html" %}
+{% block right %}
+  <h2>{{stock.name}}</h2>
+  <p>{{ stock.ticker_symbol }} : {{ stock.name }} : {{stock.rating.name }}</p>
+{% endblock %}

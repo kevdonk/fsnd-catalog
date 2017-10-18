@@ -1,26 +1,22 @@
-<html>
-  <head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <h1>Edit Stock</h1>
-    <div class='form-container'>
-      <form action="{{ url_for('editStock', ticker_symbol=stock.ticker_symbol) }}" method="POST">
-        Ticker Symbol: <input type='text' size='5' name='ticker_symbol' value={{stock.ticker_symbol}} required><br>
-        Name: <input type='text' size='80' name='name' value={{stock.name}} required><br>
-        <br>
-        Rating:
-        <select name='rating_id'>
-            {% for rating in ratings %}
-            <option value={{rating.id}}
-                {% if rating.id == stock.rating.id %}
-                selected
-                {% endif %}
-            >{{ rating.name }}</option>
-            {% endfor %}
-        </select>
-        <input type='submit' value='Save'>
-      </form>
-    </div>
-  </body>
-</html>
+{% extends "layout.html" %}
+{% block right %}
+  <h2>Edit Stock</h2>
+  <div class='form-container'>
+    <form action="{{ url_for('editStock', ticker_symbol=stock.ticker_symbol) }}" method="POST">
+      Ticker Symbol: <input type='text' size='5' name='ticker_symbol' value={{stock.ticker_symbol}} required><br>
+      Name: <input type='text' size='80' name='name' value={{stock.name}} required><br>
+      <br>
+      Rating:
+      <select name='rating_id'>
+          {% for rating in ratings %}
+          <option value={{rating.id}}
+              {% if rating.id == stock.rating.id %}
+              selected
+              {% endif %}
+          >{{ rating.name }}</option>
+          {% endfor %}
+      </select>
+      <input type='submit' value='Save'>
+    </form>
+  </div>
+{% endblock %}

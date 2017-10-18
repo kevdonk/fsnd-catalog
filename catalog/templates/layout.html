@@ -1,6 +1,18 @@
 <html>
   <head>
     <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="https://apis.google.com/js/client:platform.js?onload=start" async defer></script>
+    <script>
+      function start() {
+        gapi.load('auth2', function() {
+          auth2 = gapi.auth2.init({
+            client_id: '274031123962-pb2uhh6910eqct8fkva9viloqht3i23p.apps.googleusercontent.com'
+          });
+        });
+      }
+    </script>
+    <meta name="google-signin-client_id" content="274031123962-pb2uhh6910eqct8fkva9viloqht3i23p.apps.googleusercontent.com">
     {% block head %}
     <title>Portfolio</title>
     {% endblock %}
@@ -8,27 +20,66 @@
   <body>
     <div class="header">
       {% block header %}
-        header 
+      <h1>
+        Portfolio
+        {% if logged_in == False %}
+        <div id="signin"><button id="signinButton">Sign In</button></div>
+        {% endif %}
+        {% if logged_in == True %}
+        <div id="signout"><button id="signoutButton"><a href="/gdisconnect">Sign Out</a></button></div>
+        {% endif %}
+      </h1>
       {% endblock %}
     </div>
     <div class="content">
       {% block content %}
       <div class="left">
         {% block left %}
-          left 
+        <ul>
+          {% for rating in ratings %}
+          <li><a href="{{ url_for('viewRating', rating_name=rating.name) }}">{{ rating.name }}</a></li>
+          {% endfor %}
+          <li><a href="{{ url_for('newRating') }}">Add Rating</a></li>
+        </ul>
         {% endblock %}
       </div>
       <div class="right">
         {% block right %}
-          right
         {% endblock %}
       </div>
       {% endblock %}
     </div>
-    <div class="footer">
-      {% block footer %}
-        footer 
-      {% endblock %}
-    </div>
+    <script>
+    $('#signinButton').click(function() {
+      auth2.grantOfflineAccess().then(signInCallback);
+    });
+    function signInCallback(authResult) {
+      if (authResult['code']) {
+        $('#signin').attr('style', 'display: none');
+        $('#signout').attr('style', 'display: inline-block');
+
+        $.ajax({
+          type: 'POST',
+          url: '/gconnect?state={{STATE}}',
+          processData: false,
+          data: authResult['code'],
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          contentType: 'application/octet-stream; charset=utf-8',
+          success: function(result) {
+            if (result) {
+              setTimeout(function() {
+                window.location.href = "/portfolio";
+              }, 500);
+              
+            } else if (authResult['error']) {
+              console.log('There was an error: ' + authResult['error']);
+            }
+          }
+        });
+      } 
+    }
+    </script>
   </body>
 </html>

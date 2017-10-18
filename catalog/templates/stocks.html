@@ -1,14 +1,24 @@
-<html>
-  <head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <h1>Stocks to {{ rating.name }}</h1>
-
-    <ul>
-      {% for stock in stocks %}
-      <li>{{ stock.ticker_symbol }} : {{ stock.name }}</li>
-      {% endfor %}
-    </ul>
-  </body>
-</html>
+{% extends "layout.html" %}
+{% block right %}
+  <h2>Stocks to {{ rating.name }}</h2>
+  <div>
+    <a href=" {{url_for('newStock', rating_name=rating.name)}} ">
+      <button>
+        Add Stock
+      </button>
+    </a>
+  </div>
+  <br>
+  <ul>
+    {% for stock in stocks %}
+    <li>
+      {{ stock.ticker_symbol }} : {{ stock.name }}
+      <a 
+        href=" {{url_for('deleteStock', ticker_symbol=stock.ticker_symbol)}}"
+        class="delete">
+        X
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

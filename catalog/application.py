@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template, url_for, redirect, session as login_session, make_response
+from flask import Flask, jsonify, request, render_template, url_for, redirect, session as login_session, make_response, flash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from db_setup import Base, Stock, Rating
@@ -6,12 +6,11 @@ from db_setup import Base, Stock, Rating
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 
-import httplib2
 import json
 import random
+import httplib2
 import requests
 import string
-
 
 app = Flask(__name__)
 engine = create_engine('sqlite:///portfolio.db')
@@ -30,18 +29,121 @@ def findStockByTicker(ticker_symbol):
 def findRatingByName(rating_name):
     return session.query(Rating).filter_by(name=rating_name).one_or_none()
 
+def render_template_with_ratings(*args, **kwargs):
+    # generate random 'state' token to verify against
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                for x in xrange(32))
+    login_session['state'] = state
+    ratings = session.query(Rating).all()
+    is_logged_in = True
+    if 'username' not in login_session:
+        is_logged_in = False
+        
+    return render_template(args, ratings=ratings, STATE=state, logged_in=is_logged_in, **kwargs)
 
 @app.route('/')
 def main():
-    return "hi"
+    return redirect('/portfolio')
+
+@app.route('/gconnect', methods=['POST'])
+def gconnect():
+    # Validate state token
+    if request.args.get('state') != login_session['state']:
+        response = make_response(json.dumps('Invalid state parameter.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    # Obtain authorization code
+    code = request.data
+
+    try:
+        # Upgrade the authorization code into a credentials object
+        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
+        oauth_flow.redirect_uri = 'postmessage'
+        credentials = oauth_flow.step2_exchange(code)
+    except FlowExchangeError:
+        response = make_response(
+            json.dumps('Failed to upgrade the authorization code.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Check that the access token is valid.
+    access_token = credentials.access_token
+    url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
+           % access_token)
+    h = httplib2.Http()
+    result = json.loads(h.request(url, 'GET')[1])
+    # If there was an error in the access token info, abort.
+    if result.get('error') is not None:
+        response = make_response(json.dumps(result.get('error')), 500)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Verify that the access token is used for the intended user.
+    gplus_id = credentials.id_token['sub']
+    if result['user_id'] != gplus_id:
+        response = make_response(
+            json.dumps("Token's user ID doesn't match given user ID."), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Verify that the access token is valid for this app.
+    if result['issued_to'] != CLIENT_ID:
+        response = make_response(
+            json.dumps("Token's client ID does not match app's."), 401)
+        print "Token's client ID does not match app's."
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    stored_access_token = login_session.get('access_token')
+    stored_gplus_id = login_session.get('gplus_id')
+    if stored_access_token is not None and gplus_id == stored_gplus_id:
+        response = make_response(json.dumps('Current user is already connected.'),
+                                 200)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    # Store the access token in the session for later use.
+    login_session['access_token'] = credentials.access_token
+    login_session['gplus_id'] = gplus_id
+
+    # Get user info
+    userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+    params = {'access_token': credentials.access_token, 'alt': 'json'}
+    answer = requests.get(userinfo_url, params=params)
+
+    data = answer.json()
+
+    login_session['username'] = data['name']
+    login_session['picture'] = data['picture']
+    login_session['email'] = data['email']
+
+    return redirect('/portfolio')
 
 
-@app.route('/login')
-def showLogin():
-    state = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in xrange(32))
-    login_session['state'] = state
-    return render_template('login.html', state=state)
+# DISCONNECT - Revoke a current user's token and reset their login_session
 
+@app.route('/gdisconnect')
+def gdisconnect():
+    access_token = login_session['access_token']
+    # handle if user is visiting this page manually without being connected
+    if access_token is None:
+    	response = make_response(json.dumps('Current user not connected.'), 401)
+    	response.headers['Content-Type'] = 'application/json'
+    	return response
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % login_session['access_token']
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[0]
+
+    if result['status'] == '200':
+    #clear login_session
+	del login_session['access_token'] 
+    	del login_session['gplus_id']
+    	del login_session['username']
+    	del login_session['email']
+    	del login_session['picture']
+    	return redirect('/portfolio')
+    else:
+        return redirect('/portfolio')
 
 #JSON routes
 @app.route('/portfolio/JSON')
@@ -68,32 +170,34 @@ def stockJSON(ticker_symbol):
 
 @app.route('/portfolio')
 def viewRatings():
-    ratings = session.query(Rating).all()
-    return render_template('ratings.html', ratings=ratings)
+    return render_template_with_ratings('ratings.html')
 
 @app.route('/rating/new', methods=['GET', 'POST'])
 def newRating():
+    if 'username' not in login_session:
+        return redirect('/portfolio')
     if request.method == 'POST':
         rating = Rating(name=request.form['name'])
         session.add(rating)
         session.commit()
         return redirect(url_for('viewRating', rating_name=rating.name))
     else:
-        return render_template('newRating.html')
+        return render_template_with_ratings('newRating.html')
 
 @app.route('/rating/<string:rating_name>/stocks')
 def viewRating(rating_name):
     rating = findRatingByName(rating_name)
     if rating:
         stocks = session.query(Stock).filter_by(rating_id=rating.id).all()
-        return render_template('stocks.html', rating=rating, stocks=stocks)
+        return render_template_with_ratings('stocks.html', rating=rating, stocks=stocks)
     else:
         return 'Invalid Rating'
 
 
 @app.route('/rating/<string:rating_name>/new', methods=['GET', 'POST'])
 def newStock(rating_name):
-
+    if 'username' not in login_session:
+        return redirect('/portfolio')
     rating = findRatingByName(rating_name)
     if rating:
         if request.method == 'POST':
@@ -102,7 +206,7 @@ def newStock(rating_name):
             session.commit()
             return redirect(url_for('viewRating', rating_name=rating_name))
         else:
-            return render_template('newStock.html', rating_name=rating_name)
+            return render_template_with_ratings('newStock.html', rating_name=rating_name)
     else:
         return 'Invalid Rating'
 
@@ -110,12 +214,14 @@ def newStock(rating_name):
 def viewStock(ticker_symbol):
     stock = findStockByTicker(ticker_symbol)
     if stock:
-        return render_template('stock.html', stock=stock)
+        return render_template_with_ratings('stock.html', stock=stock)
     else: 
         return 'Invalid Stock'
 
 @app.route('/stock/<string:ticker_symbol>/edit', methods=['GET', 'POST'])
 def editStock(ticker_symbol):
+    if 'username' not in login_session:
+        return redirect('/portfolio')
     stock = findStockByTicker(ticker_symbol)
     if stock:
         if request.method == 'POST':
@@ -130,13 +236,14 @@ def editStock(ticker_symbol):
             session.commit()
             return redirect(url_for('viewStock', ticker_symbol=stock.ticker_symbol))
         else:
-            ratings = session.query(Rating).all()
-            return render_template('editStock.html', stock=stock, ratings=ratings)
+            return render_template_with_ratings('editStock.html', stock=stock)
     else:
         return 'Invalid Stock'
 
 @app.route('/stock/<string:ticker_symbol>/delete', methods=['GET', 'POST'])
 def deleteStock(ticker_symbol):
+    if 'username' not in login_session:
+        return redirect('/portfolio')
     stock = findStockByTicker(ticker_symbol)
     if stock:
         if request.method == 'POST':
@@ -145,7 +252,7 @@ def deleteStock(ticker_symbol):
             session.commit()
             return redirect(url_for('viewRating', rating_name=rating.name))
         else:
-            return render_template('deleteStock.html', stock=stock)
+            return render_template_with_ratings('deleteStock.html', stock=stock)
     else:
         return 'Invalid Stock'
 

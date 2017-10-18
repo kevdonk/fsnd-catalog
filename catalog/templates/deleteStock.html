@@ -1,14 +1,10 @@
-<html>
-  <head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <h1>Delete Stock: {{stock.ticker_symbol}}</h1>
-    <div class='form-container'>
-      <form action="{{ url_for('deleteStock', ticker_symbol=stock.ticker_symbol) }}" method="POST">
-        Confirm deletion of {{stock.name}}
-        <input type='submit' value='Delete Stock'>
-      </form>
-    </div>
-  </body>
-</html>
+{% extends "layout.html" %}
+{% block right %}
+  <h2>Delete Stock: {{stock.ticker_symbol}}</h2>
+  <div class='form-container'>
+    <form action="{{ url_for('deleteStock', ticker_symbol=stock.ticker_symbol) }}" method="POST">
+      Confirm deletion of {{stock.name}}
+      <input type='submit' value='Delete Stock'>
+    </form>
+  </div>
+{% endblock %}
