@@ -1,5 +1,15 @@
 {% extends "layout.html" %}
 {% block right %}
   <h2>{{stock.name}}</h2>
-  <p>{{ stock.ticker_symbol }} : {{ stock.name }} : {{stock.rating.name }}</p>
+  <p>{{ stock.ticker_symbol }} : {{ stock.name }} : {{stock.rating.name }}
+    <a
+      href=" {{url_for('editStock', ticker_symbol=stock.ticker_symbol)}}">
+      &#9998;
+    </a>
+    <a
+      href=" {{url_for('deleteStock', ticker_symbol=stock.ticker_symbol)}}"
+      class="delete">
+      X
+    </a>
+  </p>
 {% endblock %}

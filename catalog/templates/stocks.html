@@ -12,7 +12,14 @@
   <ul>
     {% for stock in stocks %}
     <li>
-      {{ stock.ticker_symbol }} : {{ stock.name }}
+      <a
+        href=" {{url_for('viewStock', ticker_symbol=stock.ticker_symbol)}}">
+        {{ stock.ticker_symbol }} : {{ stock.name }}
+      </a>
+      <a
+        href=" {{url_for('editStock', ticker_symbol=stock.ticker_symbol)}}">
+        &#9998;
+      </a>
       <a 
         href=" {{url_for('deleteStock', ticker_symbol=stock.ticker_symbol)}}"
         class="delete">
